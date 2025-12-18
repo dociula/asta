@@ -2,50 +2,101 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>La Mia Piccola Asta</title>
+    <title>La Mia Asta Online</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; padding: 20px; background: #f4f4f9; }
-        .auction-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 300px; text-align: center; }
-        .price-tag { font-size: 24px; color: #2ecc71; font-weight: bold; margin: 15px 0; }
-        input { width: 80%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; }
-        button { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
-        button:hover { background: #2980b9; }
-        #message { font-size: 0.9em; margin-top: 10px; min-height: 1.2em; }
+        body { font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 40px; background: #f8f9fa; }
+        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); text-align: center; width: 380px; border-top: 8px solid #007bff; }
+        .price-box { background: #e9ecef; padding: 20px; border-radius: 15px; margin: 20px 0; }
+        .price { font-size: 45px; color: #007bff; font-weight: bold; display: block; }
+        .bidder-label { color: #6c757d; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+        #best-bidder { font-weight: bold; color: #343a40; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        input { width: 92%; padding: 12px; border: 2px solid #dee2e6; border-radius: 8px; font-size: 16px; transition: 0.3s; }
+        input:focus { border-color: #007bff; outline: none; }
+        button { width: 100%; background: #28a745; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-size: 18px; font-weight: bold; }
+        button:hover { background: #218838; }
+        #msg { margin-top: 15px; font-weight: bold; min-height: 1.2em; }
     </style>
 </head>
 <body>
 
-<div class="auction-card">
-    <h2>Orologio Vintage</h2>
-    <p>Descrizione: Un pezzo unico degli anni '70.</p>
-    <div class="price-tag">Prezzo Attuale: €<span id="current-price">50</span></div>
+<div class="card">
+    <h2>Asta: Giocatore in chat</h2>
     
-    <input type="number" id="bid-amount" placeholder="Inserisci la tua offerta">
-    <button onclick="placeBid()">Fai un'offerta</button>
+    <div class="price-box">
+        <span class="bidder-label">Offerta attuale di <span id="best-bidder">...</span></span>
+        <span class="price">€ <span id="current-price">0</span></span>
+    </div>
     
-    <div id="message"></div>
+    <div class="input-group">
+        <label for="user-name">Tuo Nome:</label>
+        <input type="text" id="user-name" placeholder="Inserisci il tuo nome">
+    </div>
+
+    <div class="input-group">
+        <label for="bid-amount">Tua Offerta (€):</label>
+        <input type="number" id="bid-amount" placeholder="Cifra superiore all'attuale">
+    </div>
+
+    <button onclick="placeBid()">Invia Offerta</button>
+    <p id="msg"></p>
 </div>
 
-<script>
-    let currentPrice = 50;
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    function placeBid() {
-        const bidInput = document.getElementById('bid-amount');
-        const message = document.getElementById('message');
-        const bidValue = parseFloat(bidInput.value);
+  // --- INCOLLA QUI I TUOI DATI FIREBASE ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyDtGgHO7zrSNleKwa0NFr1V9iFfC8JR-CI",
+    authDomain: "lamiaastaclaudio.firebaseapp.com",
+    databaseURL: "https://lamiaastaclaudio-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "lamiaastaclaudio",
+    storageBucket: "lamiaastaclaudio.firebasestorage.app",
+    messagingSenderId: "609532970140",
+    appId: "1:609532970140:web:b7df1e9ca6275d421a9959"
+  };
 
-        if (bidValue > currentPrice) {
-            currentPrice = bidValue;
-            document.getElementById('current-price').innerText = currentPrice;
-            message.innerText = "Complimenti! Sei il miglior offerente.";
-            message.style.color = "green";
-            bidInput.value = "";
-        } else {
-            message.innerText = "L'offerta deve essere superiore al prezzo attuale!";
-            message.style.color = "red";
-        }
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const auctionRef = ref(db, 'auction');
+
+  // Aggiornamento dati in tempo reale
+  onValue(auctionRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        document.getElementById('current-price').innerText = data.currentPrice || 0;
+        document.getElementById('best-bidder').innerText = data.bidderName || "nessuno";
     }
+  });
+
+  // Funzione per inviare l'offerta
+  window.placeBid = function() {
+    const name = document.getElementById('user-name').value;
+    const bid = parseFloat(document.getElementById('bid-amount').value);
+    const currentPrice = parseFloat(document.getElementById('current-price').innerText);
+    const msg = document.getElementById('msg');
+
+    if (!name || name.trim() === "") {
+      alert("Per favore, inserisci il tuo nome.");
+      return;
+    }
+
+    if (bid > currentPrice) {
+      update(auctionRef, {
+        currentPrice: bid,
+        bidderName: name
+      }).then(() => {
+        msg.innerText = "Offerta accettata! Sei in testa.";
+        msg.style.color = "green";
+        document.getElementById('bid-amount').value = ""; // Pulisce il campo
+      });
+    } else {
+      msg.innerText = "L'offerta deve essere maggiore di €" + currentPrice;
+      msg.style.color = "red";
+    }
+  };
 </script>
 
 </body>
