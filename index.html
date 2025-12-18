@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Mia Piccola Asta</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; padding: 20px; background: #f4f4f9; }
+        .auction-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 300px; text-align: center; }
+        .price-tag { font-size: 24px; color: #2ecc71; font-weight: bold; margin: 15px 0; }
+        input { width: 80%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        button { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #2980b9; }
+        #message { font-size: 0.9em; margin-top: 10px; min-height: 1.2em; }
+    </style>
+</head>
+<body>
+
+<div class="auction-card">
+    <h2>Orologio Vintage</h2>
+    <p>Descrizione: Un pezzo unico degli anni '70.</p>
+    <div class="price-tag">Prezzo Attuale: €<span id="current-price">50</span></div>
+    
+    <input type="number" id="bid-amount" placeholder="Inserisci la tua offerta">
+    <button onclick="placeBid()">Fai un'offerta</button>
+    
+    <div id="message"></div>
+</div>
+
+<script>
+    let currentPrice = 50;
+
+    function placeBid() {
+        const bidInput = document.getElementById('bid-amount');
+        const message = document.getElementById('message');
+        const bidValue = parseFloat(bidInput.value);
+
+        if (bidValue > currentPrice) {
+            currentPrice = bidValue;
+            document.getElementById('current-price').innerText = currentPrice;
+            message.innerText = "Complimenti! Sei il miglior offerente.";
+            message.style.color = "green";
+            bidInput.value = "";
+        } else {
+            message.innerText = "L'offerta deve essere superiore al prezzo attuale!";
+            message.style.color = "red";
+        }
+    }
+</script>
+
+</body>
+</html>
